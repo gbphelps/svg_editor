@@ -21,6 +21,14 @@ function mult(a,b){
 function mid(a,b){
 return {x: (a.x + b.x)/2, y: (a.y + b.y)/2}
 }
+
+function mag(a){
+    return Math.sqrt(a.x*a.x + a.y*a.y);
+}
+
+function norm(a){
+    return div(a, mag(a));
+}
   ///////////////////////////////////////////////////////////////////////////////
   
   function resize(){
@@ -297,7 +305,8 @@ return {x: (a.x + b.x)/2, y: (a.y + b.y)/2}
     })
 
     Object.assign(p,parent);
-    p.addEventListener('mousedown', ctrlClick)
+    p.addEventListener('mousedown', ctrlClick);
+    p.addEventListener('dblclick', ctrlDblClick);
     return p;
   }
 
@@ -354,4 +363,30 @@ return {x: (a.x + b.x)/2, y: (a.y + b.y)/2}
         })
     }
 
+  }
+
+  function ctrlDblClick(e){
+    const point = e.target;
+    let other, vertex;
+    if (vertex = e.target._vertexBefore) other = e.target._vertexBefore._controlBefore;
+    if (vertex = e.target._vertexAfter) other = e.target._vertexAfter._controlAfter;
+    if (other){
+        point._lockTangent = other;
+        other._lockTangent = point;
+        let vec = norm(sub(getCoords(vertex), getCoords(point)));
+        
+        vec = mult(vec, mag(  sub (getCoords(vertex), getCoords(other)) ));
+        vec = add(getCoords(vertex), vec);
+
+        set(other,{
+            cx: vec.x,
+            cy: vec.y
+         })
+         setCurveCtrl(other);
+         set(other._controlLine,{
+             x2: vec.x,
+             y2: vec.y
+         });
+
+    }
   }
