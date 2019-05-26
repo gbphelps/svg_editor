@@ -99,7 +99,6 @@ function norm(a){
   function click(e){
     e.stopPropagation();
     e.preventDefault();
-    const [x0,y0] = [e.clientX, e.clientY];
     const move = drag.bind(e.target);
     
     document.addEventListener('mousemove', move)
@@ -152,23 +151,19 @@ function norm(a){
     }
 
     setCurves(this);
-    // if (this._lineAfter){
-    //     const coords = getCoords(this._pointAfter);
-    //     set(this._lineAfter, {
-    //         d: `M ${e.clientX} ${e.clientY} L${coords.x} ${coords.y}`
-    //     })
-    // }
-    // if (this._lineBefore){
-    //     const coords = getCoords(this._pointBefore);
-    //     set(this._lineBefore, {
-    //         d: `M ${coords.x} ${coords.y} L ${e.clientX} ${e.clientY}`
-    //     })
-    // } 
   }
   
   ///////////////////////////////////////////////////////////////////////////////
 
   function dblclick(e){
+
+    if (!e.target._pointBefore){
+        // e.target._pointBefore = active;
+        // active._pointAfter = e.target;
+        createLine(active, e.target)
+        return;
+    }
+
     if (!e.target._controlAfter && e.target._pointAfter){
         const p0 = getCoords(e.target);
         const p1 = getCoords(e.target._pointAfter);
@@ -387,13 +382,18 @@ function norm(a){
   function ctrlDblClick(e){
     const point = e.target;
     let other, vertex;
-    if (vertex = e.target._vertexBefore) other = e.target._vertexBefore._controlBefore;
-    if (vertex = e.target._vertexAfter) other = e.target._vertexAfter._controlAfter;
+    if (vertex = e.target._vertexBefore){
+        other = e.target._vertexBefore._controlBefore;
+    } else if (vertex = e.target._vertexAfter){
+        other = e.target._vertexAfter._controlAfter;
+    }
+
     if (other){
         point._lockTangent = other;
         other._lockTangent = point;
+
         let vec = norm(sub(getCoords(vertex), getCoords(point)));
-        
+
         vec = mult(vec, mag(  sub (getCoords(vertex), getCoords(other)) ));
         vec = add(getCoords(vertex), vec);
 
