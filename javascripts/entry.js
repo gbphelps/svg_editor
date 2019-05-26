@@ -1,6 +1,8 @@
 
 let svg,points,lines;
 let active;
+let first;
+let shape;
  
 function sub(a,b){
     return {x: a.x - b.x, y: a.y - b.y}
@@ -39,6 +41,7 @@ function norm(a){
     svg = document.getElementById('svg');
     points = document.getElementById('points');
     lines = document.getElementById('lines');
+    shape = document.getElementById('shape')
 
     resize();
     window.addEventListener('resize',resize);
@@ -48,9 +51,22 @@ function norm(a){
         
         const p = createPoint(x,y);
         points.appendChild(p);
-        if (active) createLine(active, p);
 
-        
+        if (active){
+            // createLine(active, p);
+            active._pointAfter = p;
+            p._pointBefore = active;
+            p._first = active._first;
+            setFullPath(p);     
+        } else {
+            first = p;
+            const path = document.createElementNS('http://www.w3.org/2000/svg', "path");
+            set(path,{stroke:"pink", fill:"red", strokeWidth: 10});
+            shape.appendChild(path);
+            first._path = path;
+            first._first = first;
+        }
+
         active = p;
         
         //makeCurve();
@@ -58,24 +74,24 @@ function norm(a){
 
   })
 
-  function createLine(p0, p1){
-    const [x1, y1] = getCoords(p0, "array");
-    const [x2, y2] = getCoords(p1, "array");
+//   function createLine(p0, p1){
+//     const [x1, y1] = getCoords(p0, "array");
+//     const [x2, y2] = getCoords(p1, "array");
 
-    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
-    set(path, { 
-        d: `M ${x1} ${y1} L ${x2} ${y2}`,
-        stroke: "black",
-        fill: "transparent" 
-    });
+//     const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+//     set(path, { 
+//         d: `M ${x1} ${y1} L ${x2} ${y2}`,
+//         stroke: "black",
+//         fill: "transparent" 
+//     });
     
-    p0._pointAfter = p1;
-    p1._pointBefore = p0;
-    p0._lineAfter = path;
-    p1._lineBefore = path;
+//     p0._pointAfter = p1;
+//     p1._pointBefore = p0;
+//     p0._lineAfter = path;
+//     p1._lineBefore = path;
 
-    lines.appendChild(path)
-  }
+//     lines.appendChild(path)
+//   }
 
   function createPoint(x,y){
     const p = document.createElementNS('http://www.w3.org/2000/svg','circle');
@@ -99,6 +115,16 @@ function norm(a){
   function click(e){
     e.stopPropagation();
     e.preventDefault();
+
+    if (!e.target._pointBefore){
+        e.target._pointBefore = active;
+        active._pointAfter = e.target;
+        active._first = e.target;
+        setFullPath(active);
+        
+        return;
+    }
+
     const move = drag.bind(e.target);
     
     document.addEventListener('mousemove', move)
@@ -150,19 +176,17 @@ function norm(a){
         })
     }
 
-    setCurves(this);
+    // setCurves(this);
+
+    //////////////////////////
+    setFullPath(this);////////
+    //////////////////////////
+
   }
   
   ///////////////////////////////////////////////////////////////////////////////
 
   function dblclick(e){
-
-    if (!e.target._pointBefore){
-        // e.target._pointBefore = active;
-        // active._pointAfter = e.target;
-        createLine(active, e.target)
-        return;
-    }
 
     if (!e.target._controlAfter && e.target._pointAfter){
         const p0 = getCoords(e.target);
@@ -184,8 +208,9 @@ function norm(a){
         m._controlLine = l;
 
 
-        setCurveCtrl(m);
+        // setCurveCtrl(m);
         points.appendChild(m);
+        setFullPath(e.target);
     }
 
     if (!e.target._controlBefore && e.target._pointBefore){
@@ -207,8 +232,9 @@ function norm(a){
         m._controlLine = l;
         l._vertex = e.target;
 
-        setCurveCtrl(m);
-        points.appendChild(m)
+        //setCurveCtrl(m);
+        points.appendChild(m);
+        setFullPath(e.target);
     }
   }
   ///////////////////////////////////////////////////////////////////////////////
@@ -235,57 +261,57 @@ function norm(a){
 
   /////////////////////////////////////////////////////////////////
 
-  function setCurves(p){
+//   function setCurves(p){
 
-    let line;
-    if (line = p._lineAfter){
-        const p1 = getCoords(p);
-        const p2 = getCoords(p._pointAfter);
-        const c1 = p._controlAfter ? getCoords(p._controlAfter) : null;
-        const c2 = p._pointAfter._controlBefore ? getCoords(p._pointAfter._controlBefore) : null;
+//     let line;
+//     if (line = p._lineAfter){
+//         const p1 = getCoords(p);
+//         const p2 = getCoords(p._pointAfter);
+//         const c1 = p._controlAfter ? getCoords(p._controlAfter) : null;
+//         const c2 = p._pointAfter._controlBefore ? getCoords(p._pointAfter._controlBefore) : null;
 
-        if (!c1 && !c2){
-            set(line,{
-                d: `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}` //todo
-            })
-        } else if (c1 && !c2){
-            set(line,{
-                d: `M ${p1.x} ${p1.y} Q ${c1.x} ${c1.y} ${p2.x} ${p2.y}` //todo
-            })
-        } else if (c2 && !c1){
-            set(line,{
-                d: `M ${p1.x} ${p1.y} Q ${c2.x} ${c2.y} ${p2.x} ${p2.y}` //todo
-            })
-        } else {
-            set(line,{
-                d: `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}` //todo
-            })
-        }
-    }
-    if (line = p._lineBefore){
-        const p1 = getCoords(p._pointBefore);
-        const p2 = getCoords(p);
-        const c1 = p._pointBefore._controlAfter ? getCoords(p._pointBefore._controlAfter) : null;
-        const c2 = p._controlBefore ? getCoords(p._controlBefore) : null;
-        if (!c1 && !c2){
-            set(line,{
-                d: `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}` //todo
-            })
-        } else if (c1 && !c2){
-            set(line,{
-                d: `M ${p1.x} ${p1.y} Q ${c1.x} ${c1.y} ${p2.x} ${p2.y}` //todo
-            })
-        } else if (c2 && !c1){
-            set(line,{
-                d: `M ${p1.x} ${p1.y} Q ${c2.x} ${c2.y} ${p2.x} ${p2.y}` //todo
-            })
-        } else {
-            set(line,{
-                d: `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}` //todo
-            })
-        }
-    }
-  }
+//         if (!c1 && !c2){
+//             set(line,{
+//                 d: `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}` //todo
+//             })
+//         } else if (c1 && !c2){
+//             set(line,{
+//                 d: `M ${p1.x} ${p1.y} Q ${c1.x} ${c1.y} ${p2.x} ${p2.y}` //todo
+//             })
+//         } else if (c2 && !c1){
+//             set(line,{
+//                 d: `M ${p1.x} ${p1.y} Q ${c2.x} ${c2.y} ${p2.x} ${p2.y}` //todo
+//             })
+//         } else {
+//             set(line,{
+//                 d: `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}` //todo
+//             })
+//         }
+//     }
+//     if (line = p._lineBefore){
+//         const p1 = getCoords(p._pointBefore);
+//         const p2 = getCoords(p);
+//         const c1 = p._pointBefore._controlAfter ? getCoords(p._pointBefore._controlAfter) : null;
+//         const c2 = p._controlBefore ? getCoords(p._controlBefore) : null;
+//         if (!c1 && !c2){
+//             set(line,{
+//                 d: `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}` //todo
+//             })
+//         } else if (c1 && !c2){
+//             set(line,{
+//                 d: `M ${p1.x} ${p1.y} Q ${c1.x} ${c1.y} ${p2.x} ${p2.y}` //todo
+//             })
+//         } else if (c2 && !c1){
+//             set(line,{
+//                 d: `M ${p1.x} ${p1.y} Q ${c2.x} ${c2.y} ${p2.x} ${p2.y}` //todo
+//             })
+//         } else {
+//             set(line,{
+//                 d: `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}` //todo
+//             })
+//         }
+//     }
+//   }
 
   ////////////////////////////////////////////////////////////////////////
 
@@ -323,15 +349,15 @@ function norm(a){
        cx: e.clientX,
        cy: e.clientY 
     })
-    setCurveCtrl(this);
+    // setCurveCtrl(this);
     set(this._controlLine,{
         x2: e.clientX,
         y2: e.clientY
     })
 
+    const vertex = this._vertexBefore || this._vertexAfter;
     if (this._lockTangent){
-
-        const vertex = this._vertexBefore || this._vertexAfter;
+  
         let vec = norm(sub(getCoords(vertex), getCoords(this)));
         
         vec = mult(vec, mag(  sub (getCoords(vertex), getCoords(this._lockTangent)) ));
@@ -341,43 +367,45 @@ function norm(a){
             cx: vec.x,
             cy: vec.y
          })
-         setCurveCtrl(this._lockTangent);
+        //  setCurveCtrl(this._lockTangent);
          set(this._lockTangent._controlLine,{
              x2: vec.x,
              y2: vec.y
          });
     }
+
+    setFullPath(vertex)
   }
 
-  function setCurveCtrl(p){
-    if (p._vertexBefore){
-        const p1 = getCoords(p._vertexBefore);
-        const c1 = getCoords(p);
-        const p2 = getCoords(p._vertexBefore._pointAfter);
-        const c2 = p._vertexBefore._pointAfter._controlBefore ? getCoords(p._vertexBefore._pointAfter._controlBefore) : null;
+//   function setCurveCtrl(p){
+//     if (p._vertexBefore){
+//         const p1 = getCoords(p._vertexBefore);
+//         const c1 = getCoords(p);
+//         const p2 = getCoords(p._vertexBefore._pointAfter);
+//         const c2 = p._vertexBefore._pointAfter._controlBefore ? getCoords(p._vertexBefore._pointAfter._controlBefore) : null;
 
-        set(p._vertexBefore._lineAfter,{
-            d: c2 ? 
-                `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}` :
-                `M ${p1.x} ${p1.y} Q ${c1.x} ${c1.y} ${p2.x} ${p2.y}`
-        })
-    }
+//         set(p._vertexBefore._lineAfter,{
+//             d: c2 ? 
+//                 `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}` :
+//                 `M ${p1.x} ${p1.y} Q ${c1.x} ${c1.y} ${p2.x} ${p2.y}`
+//         })
+//     }
 
-    if (p._vertexAfter){
-        const p1 = getCoords(p._vertexAfter._pointBefore);
-        const c1 = p._vertexAfter._pointBefore._controlAfter ? getCoords(p._vertexAfter._pointBefore._controlAfter) : null;
+//     if (p._vertexAfter){
+//         const p1 = getCoords(p._vertexAfter._pointBefore);
+//         const c1 = p._vertexAfter._pointBefore._controlAfter ? getCoords(p._vertexAfter._pointBefore._controlAfter) : null;
 
-        const c2 = getCoords(p);
-        const p2 = getCoords(p._vertexAfter);
+//         const c2 = getCoords(p);
+//         const p2 = getCoords(p._vertexAfter);
 
-        set(p._vertexAfter._lineBefore,{
-            d: c1 ? 
-                `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}` :
-                `M ${p1.x} ${p1.y} Q ${c2.x} ${c2.y} ${p2.x} ${p2.y}`
-        })
-    }
+//         set(p._vertexAfter._lineBefore,{
+//             d: c1 ? 
+//                 `M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}` :
+//                 `M ${p1.x} ${p1.y} Q ${c2.x} ${c2.y} ${p2.x} ${p2.y}`
+//         })
+//     }
 
-  }
+//   }
 
   function ctrlDblClick(e){
     const point = e.target;
@@ -401,11 +429,46 @@ function norm(a){
             cx: vec.x,
             cy: vec.y
          })
-         setCurveCtrl(other);
+        //  setCurveCtrl(other);
          set(other._controlLine,{
              x2: vec.x,
              y2: vec.y
          });
-
     }
+
+    setFullPath(vertex);
+  }
+
+  //////////////////////////////
+  function setFullPath(p){
+
+    let node = p._first;
+
+    let d = `M ${getCoords(node).x} ${getCoords(node).y}`;
+
+    
+    do {
+        const p1 = getCoords(node);
+
+        const c1 = node._controlAfter ? getCoords(node._controlAfter) : null;
+        const p2 = getCoords(node._pointAfter);
+        const c2 = node._pointAfter._controlBefore ? getCoords(node._pointAfter._controlBefore) : null;
+
+        
+        if (!c1 && !c2){
+            d += `L ${p2.x} ${p2.y}`;
+        } else if (c1 && !c2){
+            d += `Q ${c1.x} ${c1.y} ${p2.x} ${p2.y}`;
+        } else if (c2 && !c1){
+            d += `Q ${c2.x} ${c2.y} ${p2.x} ${p2.y}`;
+        } else {
+            d +=`M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}`;
+        }
+
+    node = node._pointAfter;
+    } while (node !== p._first && node._pointAfter);
+
+    set(p._first._path, {d})
+
+
   }
