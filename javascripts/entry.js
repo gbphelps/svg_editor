@@ -333,6 +333,25 @@ function norm(a){
         x2: e.clientX,
         y2: e.clientY
     })
+
+    if (this._lockTangent){
+
+        const vertex = this._vertexBefore || this._vertexAfter;
+        let vec = norm(sub(getCoords(vertex), getCoords(this)));
+        
+        vec = mult(vec, mag(  sub (getCoords(vertex), getCoords(this._lockTangent)) ));
+        vec = add(getCoords(vertex), vec);
+
+        set(this._lockTangent,{
+            cx: vec.x,
+            cy: vec.y
+         })
+         setCurveCtrl(this._lockTangent);
+         set(this._lockTangent._controlLine,{
+             x2: vec.x,
+             y2: vec.y
+         });
+    }
   }
 
   function setCurveCtrl(p){
