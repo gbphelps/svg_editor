@@ -462,7 +462,7 @@ function norm(a){
         } else if (c2 && !c1){
             d += `Q ${c2.x} ${c2.y} ${p2.x} ${p2.y}`;
         } else {
-            d +=`M ${p1.x} ${p1.y} C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}`;
+            d +=`C ${c1.x} ${c1.y} ${c2.x} ${c2.y} ${p2.x} ${p2.y}`;
         }
 
     node = node._pointAfter;
