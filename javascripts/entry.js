@@ -3,6 +3,7 @@ let svg,points,lines;
 let active;
 let first;
 let shape;
+let selected;
 
 const gray = "#999"
  
@@ -57,15 +58,14 @@ function norm(a){
         if (active){
             active._pointAfter = p;
             p._pointBefore = active;
-            p._first = active._first;
+            p._path = active._path;
             setFullPath(p);     
         } else {
-            first = p;
             const path = document.createElementNS('http://www.w3.org/2000/svg', "path");
             set(path,{stroke:"black", fill:"red", ['stroke-width']: 1});
             shape.appendChild(path);
-            first._path = path;
-            first._first = first;
+            p._path = path;
+            path._first = p;
         }
 
         active = p;
@@ -92,11 +92,56 @@ function norm(a){
   }
   
   
+
+
+  function select(p){
+    if (selected) selected.setAttribute("r", 5)
+    selected = p;
+    p.setAttribute("r", 10);
+  }
+
+
+
+
+
+  document.addEventListener('keydown', e=>{
+      if (e.keyCode === 8){
+          if (!selected) return;
+
+          if (selected._controlBefore){
+                selected._controlBefore.parentNode.removeChild(selected._controlBefore);
+                selected._controlBefore._controlLine.parentNode.removeChild(selected._controlBefore._controlLine);
+          }
+          
+          if (selected._controlAfter){
+            selected._controlAfter._controlLine.parentNode.removeChild(selected._controlAfter._controlLine);
+            selected._controlAfter.parentNode.removeChild(selected._controlAfter);
+          }
+
+          if (selected._pointAfter) selected._pointAfter._pointBefore = selected._pointBefore;
+          if (selected._pointBefore) selected._pointBefore._pointAfter = selected._pointAfter;
+          if (selected === selected._path._first){ 
+              console.log(selected._path.first, "need to switch");
+              selected._path._first = selected._pointAfter;
+            }
+
+
+          setFullPath(selected._pointAfter);
+
+          selected.parentNode.removeChild(selected)
+
+      }
+  })
+
+
+
   ////////////////////////////////////////////////////////////////////////////////
   
   function click(e){
     e.stopPropagation();
     e.preventDefault();
+
+    select(e.target);
 
     if (!e.target._pointBefore ){
         if ( active._pointBefore && active._pointBefore !== e.target){
@@ -333,12 +378,14 @@ function norm(a){
   //////////////////////////////
   function setFullPath(p){
 
-    let node = p._first;
+    let node = p._path._first;
 
     let d = `M ${getCoords(node).x} ${getCoords(node).y}`;
 
     
     do {
+
+        console.log(getCoords(node));
 
         const c1 = node._controlAfter ? getCoords(node._controlAfter) : null;
         const p2 = getCoords(node._pointAfter);
@@ -356,9 +403,9 @@ function norm(a){
         }
 
     node = node._pointAfter;
-    } while (node !== p._first && node._pointAfter);
+    } while (node !== p._path._first && node._pointAfter);
 
-    set(p._first._path, {d})
+    set(p._path, {d})
 
 
   }
