@@ -111,10 +111,6 @@ function norm(a){
 
           if (!selected) return;
 
-          if (selected._pointAfter) console.log(selected._pointAfter._id);
-          if (selected._pointBefore) console.log(selected._pointBefore._id)
-
-
           if (selected._controlBefore){
                 selected._controlBefore.parentNode.removeChild(selected._controlBefore);
                 selected._controlBefore._controlLine.parentNode.removeChild(selected._controlBefore._controlLine);
@@ -129,6 +125,8 @@ function norm(a){
           if (!selected._pointBefore && !selected._pointAfter){ //if it's the only point
             selected._path.parentNode.removeChild(selected._path);
             selected.parentNode.removeChild(selected);
+            selected = null;
+            active = null;
             return;
         }
 
@@ -402,8 +400,6 @@ function norm(a){
 
     
     do {
-
-        console.log(getCoords(node));
 
         const c1 = node._controlAfter ? getCoords(node._controlAfter) : null;
         const p2 = getCoords(node._pointAfter);
