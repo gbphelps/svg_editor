@@ -59,7 +59,7 @@ function norm(a){
             active._pointAfter = p;
             p._pointBefore = active;
             p._path = active._path;
-            setFullPath(p);     
+            setFullPath(p._path);     
         } else {
             const path = document.createElementNS('http://www.w3.org/2000/svg', "path");
             set(path,{stroke:"black", fill:"red", ['stroke-width']: 1});
@@ -75,6 +75,7 @@ function norm(a){
   })
 
 
+  let idx = 0;
   function createPoint(x,y){
     const p = document.createElementNS('http://www.w3.org/2000/svg','circle');
     p.setAttribute('cx', x);
@@ -83,6 +84,7 @@ function norm(a){
     p.setAttribute('fill', 'black')
     p.addEventListener('mousedown', click);
     p.addEventListener('dblclick', dblclick);
+    p._id = idx++;
     return p;
   }
   
@@ -106,7 +108,12 @@ function norm(a){
 
   document.addEventListener('keydown', e=>{
       if (e.keyCode === 8){
+
           if (!selected) return;
+
+          if (selected._pointAfter) console.log(selected._pointAfter._id);
+          if (selected._pointBefore) console.log(selected._pointBefore._id)
+
 
           if (selected._controlBefore){
                 selected._controlBefore.parentNode.removeChild(selected._controlBefore);
@@ -118,17 +125,23 @@ function norm(a){
             selected._controlAfter.parentNode.removeChild(selected._controlAfter);
           }
 
+          
+          if (!selected._pointBefore && !selected._pointAfter){ //if it's the only point
+            selected._path.parentNode.removeChild(selected._path);
+            selected.parentNode.removeChild(selected);
+            return;
+        }
+
+          if (selected === active) active = selected._pointBefore;
           if (selected._pointAfter) selected._pointAfter._pointBefore = selected._pointBefore;
-          if (selected._pointBefore) selected._pointBefore._pointAfter = selected._pointAfter;
-          if (selected === selected._path._first){ 
-              console.log(selected._path.first, "need to switch");
-              selected._path._first = selected._pointAfter;
-            }
+          if (selected._pointBefore) selected._pointBefore._pointAfter = selected._pointAfter; 
+          if (selected === selected._path._first) selected._path._first = selected._pointAfter;
 
 
-          setFullPath(selected._pointAfter);
+          setFullPath(selected._path);
 
-          selected.parentNode.removeChild(selected)
+          selected.parentNode.removeChild(selected);
+          selected = null;
 
       }
   })
@@ -148,7 +161,7 @@ function norm(a){
             e.target._pointBefore = active;
             active._pointAfter = e.target;
             active._first = e.target;
-            setFullPath(active);
+            setFullPath(active._path);
             active = null;
         }      
     }
@@ -205,7 +218,7 @@ function norm(a){
     }
 
     //////////////////////////
-    setFullPath(this);////////
+    setFullPath(this._path);////////
     //////////////////////////
 
   }
@@ -236,7 +249,7 @@ function norm(a){
         m._controlLine = l;
 
         points.appendChild(m);
-        setFullPath(e.target);
+        setFullPath(e.target._path);
     }
 
     if (!e.target._controlBefore && e.target._pointBefore){
@@ -259,7 +272,7 @@ function norm(a){
         l._vertex = e.target;
 
         points.appendChild(m);
-        setFullPath(e.target);
+        setFullPath(e.target._path);
     }
   }
   ///////////////////////////////////////////////////////////////////////////////
@@ -339,7 +352,7 @@ function norm(a){
          });
     }
 
-    setFullPath(vertex)
+    setFullPath(vertex._path)
   }
 
 
@@ -372,15 +385,20 @@ function norm(a){
          });
     }
 
-    setFullPath(vertex);
+    setFullPath(vertex._path);
   }
 
   //////////////////////////////
-  function setFullPath(p){
+  function setFullPath(path){
 
-    let node = p._path._first;
+    let node = path._first;
 
     let d = `M ${getCoords(node).x} ${getCoords(node).y}`;
+
+    if (!node._pointAfter){
+        set(path,{d: ''});
+        return;
+    }
 
     
     do {
@@ -391,7 +409,6 @@ function norm(a){
         const p2 = getCoords(node._pointAfter);
         const c2 = node._pointAfter._controlBefore ? getCoords(node._pointAfter._controlBefore) : null;
 
-        
         if (!c1 && !c2){
             d += `L ${p2.x} ${p2.y}`;
         } else if (c1 && !c2){
@@ -403,9 +420,9 @@ function norm(a){
         }
 
     node = node._pointAfter;
-    } while (node !== p._path._first && node._pointAfter);
+    } while (node !== path._first && node._pointAfter);
 
-    set(p._path, {d})
+    set(path, {d})
 
 
   }
